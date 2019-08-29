@@ -138,22 +138,10 @@ $ git push origin hotfix/cavium-autofs-fp12345
 $ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop -t 'autofsMountUpdate' utilityPlaybook/autofs.yml
 ```
 
-### Add Python libraries (deprecated)
+### Python libraries
 
-If a user requests some Python library to be installed:
-
-1. Edit `includes/install_python_libs.yml`.  Be sure to add the version of the
-   package that you are installing (this can be found easily enough using `pip
-   search $package`).  Add the package under the appropriate stanzas (for Python 
-   2 and 3 if both packages are available).
-
-2. See steps 3-5 of 'Add mounts' section.
-
-3. Once the PR has been approved, merged, and pulled to flux-admin09, push the
-   change to the cluster.  
-```
-$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop -t 'install_python_libs' hadoop-playbook.yml
-```
+If a user requires a Python library, our current policy is to provide them
+instructions to install it into their home directory.  
 
 ### Add new queues
 
