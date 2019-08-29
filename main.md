@@ -365,41 +365,8 @@ Winter 2019 Maintenance Changes
 
 ### Operational Changes
 
-Due to a bug in the Bigtop 1.2 software stack, starting secure DataNodes using a
-service manager (i.e. systemd) no longer works.  The service reports failure, so
-child processes are killed.  The DataNode service must be started manually.  It
-still _reports_ failure if done this way, but using `ps` reveals that the
-process is actually running.  As such, there is a new procedure to shutdown and
-start services on DataNode (compute) servers.
-
-1. Stop the NodeManager service as normal  
-```
-$ systemctl stop hadoop-yarn-nodemanager.service
-```
-
-2. Stop the DataNode service by killing its processes (there should be two):
-```
-$ for pid in $(ps -ef | grep datanode | awk '{print $2}'); do kill $pid; done
-```
-
-To start services on compute servers:
-
-1. Start the DataNode service with the following command as `root`  
-```
-$ . /etc/hadoop/conf/hadoop-env.sh && /etc/init.d/hadoop-hdfs-datanode start
-```
-
-2. Start the NodeManager service as normal  
-```
-$ systemctl start hadoop-hdfs-nodemanager.service
-```
-
-A major consequence of this is that DataNode logs are now in a different place.
-They can be found in `/usr/lib/hadoop/logs/` instead of `/var/log/hadoop-hdfs/`.
-
-Further, we must now obtain Kerberos tickets to run administrative `hdfs` and
-`yarn` commands.  There are keytabs in place for this.  For hdfs (as the `hdfs`
-user):  
+We must now obtain Kerberos tickets to run administrative `hdfs` and `yarn`
+commands.  There are keytabs in place for this.  For hdfs (as the `hdfs` user):  
 ```
 $ kinit -kt /etc/security/keytabs/hdfs.service.keytab hdfs-cavium1
 ```
@@ -419,4 +386,8 @@ Also, if you wish to run jobs as yourself, you have two options:
     b. run `kinit` (with no arguments)
     c. enter your UMICH password
 
+Summer 2019 Maintenance Changes
+-------------------------------
 
+* Update OS
+    * New `centosVersion` is `7.6.1908`
