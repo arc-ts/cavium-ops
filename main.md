@@ -255,6 +255,63 @@ user needs to be added to a certain YARN queue:
 $ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop -t 'update-queues' hadoopUtilityPlaybooks/yarn-queues.yml
 ```
 
+Maintenance
+-----------
+
+During maintenance, one of the most common tasks we perform is to update the OS.
+This can readily be done using Ansible.  There are a number of steps involved,
+however, some of which should be done prior to the maintenance window.  
+
+### Use `reposync` to get OS updates (pre-maintenace)
+
+The first task should be to pull down the newest packages.  Using CentOS, only
+the `updates` repo needs to be pulled.  The following instructions assume you
+are on flux-admin09 as root.
+
+1. Create a directory for the version that you are pulling.  
+```
+$ mkdir /usr/arcts/repos/dist/CentOS/$arch/$version
+```
+
+For the Cavium ThunderX cluster, `$arch` will always be `aarch64`.  (It could be
+`x86_64` if working on other systems.)
+
+The ARC-TS convention for versioning is to use the OS major and minor versions,
+but then the date of when you are pulling the repo.  Thus the format for a
+version is `$major.$minor.$yymm`.  For example, if you are just updating CentOS
+7.6 but you are doing it in August 2019, your `$version` would be `7.6.1908`.
+
+2. Sync the `updates` repo.  
+```
+$ reposync -t -a aarch64 \
+  --repoid=updates
+  -c /usr/arcts/repos/reposyncFiles/CentOS-7_aarch64/local_yum.conf \
+  -p /usr/arcts/repos/dist/CentOS/aarch64/$version/
+```
+
+It is also possible to use the `-n` flag of `reposync` to get only the newest
+packages.
+
+3. Create symlinks inside of the new `$version` directory to point to older
+   repos.  
+```
+$ ln -s /usr/arcts/repos/dist/CentOS/aarch64/$prev_version/os/ \
+  /usr/arcts/repos/dist/CentOS/aarch64/$version/os
+
+$ ln -s /usr/arcts/repos/dist/CentOS/aarch64/$prev_version/extras/ \
+  /usr/arcts/repos/dist/CentOS/aarch64/$version/extras
+```
+
+Here, `$prev_version` is the next newest version that is available.  For
+example, if `$version` is `7.6.1908`, `$prev_version` _might_ be `7.6.1901` if
+the last update was performed in January 2019.  It is necessary to create these
+symlinks because Ansible will deploy repo files based on what you use as
+`$version`.  If those links are not present (which they won't be if you only
+sync the updates repo), `yum` transactions will fail because they can't find the
+specified repos.
+
+### Update the version variable in Ansible (pre-maintenance)
+
 Winter 2019 Maintenance Changes
 -------------------------------
 
