@@ -283,8 +283,7 @@ version is `$major.$minor.$yymm`.  For example, if you are just updating CentOS
 
 2. Sync the `updates` repo.  
 ```
-$ reposync -t -a aarch64 \
-  --repoid=updates
+$ reposync -t -a aarch64 --repoid=updates \
   -c /usr/arcts/repos/reposyncFiles/CentOS-7_aarch64/local_yum.conf \
   -p /usr/arcts/repos/dist/CentOS/aarch64/$version/
 ```
@@ -311,6 +310,49 @@ sync the updates repo), `yum` transactions will fail because they can't find the
 specified repos.
 
 ### Update the version variable in Ansible (pre-maintenance)
+
+The following assumes that you have cloned the ARC-TS Ansible repo to
+`~/ansible` and it is your current working directory.  
+
+Create a new hotfix branch as normal.  Change the `centosVersion` variable found
+in the file `dsi-prod/group_vars/caviumHadoop/Global`.  It should be updated to
+match your `$version` from the previous section.  Commit the change and submit
+the PR as normal.  
+
+With the PR approved, you can roll out the change with the following command
+(on fa09, preferrably as yourself using `sudo`):  
+```
+$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop utilityPlaybook/yum_repo.yml
+```
+
+### Patching (during maintenance)
+
+To patch the OS, use the following instructions (assuming you are on fa09,
+preferrably as yourself using `sudo`):  
+
+1. Shutdown all Hadoop services.  There is a playbook for this.  
+```
+$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop hadoopUtilityPlaybooks/stop-hadoop.yml
+```
+
+2. Roll out updates.  
+```
+$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop utilityPlaybook/runYumUpdate.yml
+```
+
+3. Reboot.  
+```
+$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop utilityPlaybook/reboot.yml
+```
+
+4. When all the machines are back up, start Hadoop services.  
+```
+$ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop hadoopUtilityPlaybooks/start-hadoop.yml
+```
+
+The process should be done at this point.  You can perform a few manual checks
+(like `hdfs dfs -ls` as yourself and starting a pyspark job).  This would also
+be the point where you would run QA, if desired.
 
 Winter 2019 Maintenance Changes
 -------------------------------
