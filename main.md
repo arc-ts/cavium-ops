@@ -243,6 +243,50 @@ user needs to be added to a certain YARN queue:
 $ sudo ansible-playbook -i dsi-prod/ -l caviumHadoop -t 'update-queues' hadoopUtilityPlaybooks/yarn-queues.yml
 ```
 
+### Decommission nodes
+
+The node exclusion/inclusion lists for Cavium are shared between HDFS and YARN.
+The files found on the ResourceManager and NameNodes are symlinks to the actual
+files in NFS.  The symlinks are found at
+`/etc/hadoop/conf/nodes.{include,exclude}`.  The actual files can be found at
+`/usr/arcts/systems/cavium-hadoop/{dev,prod}/etc/nodes.{include,exclude}`.  For
+clarity and simplicity, we will assume that we are only
+commissioning/decommissioning production nodes.  For dev nodes, just replace the
+relevant part of the file path (i.e. replace `prod` with `dev`).  
+
+To decommission nodes:
+
+1. Add the node that you want to decom to the `nodes.exclude` file, **but leave
+   it in the `nodes.include` file**.
+
+2. Refresh the node lists for the service that you are removing the node from.  
+```
+$ hdfs dfsadmin -refreshNodes  # on cavium-nn01 or cavium-nn02 for HDFS
+
+OR
+
+$ yarn rmadmin -refreshNodes  # on cavium-rm01 for YARN
+```
+
+You can run both commands if you are removing the node from both services.
+After this is done, you will need to wait for HDFS to rebalance the cluster.
+That is, HDFS will move the blocks on the decommissioned node to other
+nodes.  You can monitor this in the HDFS UI.  
+
+For [cavium-nn01:](http://cavium-nn01.arc-ts.umich.edu)
+
+For [cavium-nn02:](http://cavium-nn02.arc-ts.umich.edu)
+
+Either will work, but a good improvement would be to automate this (at least
+find a way to send an alert when the node's data has been redistributed).  Once
+the cluster is rebalanced, you can remove the node from the `nodes.include`
+file and re-run the commands to refresh nodes.
+
+As a side note, the node exclusion/inclusion lists are in git control.  It is
+only a local repo, it has been used as record keeping mechanism.  In the git log
+you will find which nodes have been decommissioned and why.  I suggest keeping
+this going.
+
 Maintenance
 -----------
 
